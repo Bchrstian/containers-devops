@@ -1,0 +1,5 @@
+global:
+  environment: gcp
+
+chat:
+  profileEndpoints: "spring-profile-service.default.svc.cluster.local,172.171.75.136"

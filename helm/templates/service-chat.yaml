@@ -1,0 +1,14 @@
+{{- if eq .Values.global.environment "gcp" }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.chat.releaseName }}-service
+spec:
+  type: {{ .Values.chat.service.type }}
+  selector:
+    app: {{ .Values.chat.releaseName }}
+  ports:
+    - protocol: TCP
+      port: {{ .Values.chat.service.port }}
+      targetPort: {{ .Values.chat.service.targetPort }}
+{{- end }}

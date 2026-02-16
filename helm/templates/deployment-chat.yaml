@@ -1,0 +1,84 @@
+{{- if eq .Values.global.environment "gcp" }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.chat.releaseName }}-deployment
+spec:
+  replicas: {{ .Values.chat.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Values.chat.releaseName }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.chat.releaseName }}
+    spec:
+      containers:
+        - name: chat-service
+          image: {{ .Values.weCloud.imageRegistry.gcp }}/{{ .Values.chat.repository }}/{{ .Values.chat.image }}:{{ .Values.chat.tag }}
+          ports:
+            - containerPort: {{ .Values.chat.service.targetPort }}
+          resources:
+            requests:
+              cpu: {{ .Values.chat.hpa.cpuRequest }}
+          env:
+            - name: SPRING_REDIS_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: spring-chat-config
+                  key: SPRING_REDIS_HOST
+            - name: SPRING_REDIS_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: spring-chat-config
+                  key: SPRING_REDIS_PORT
+            - name: SPRING_REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.redis.passwordSecret }}
+                  key: {{ .Values.redis.passwordKey }}
+            - name: RAW_TOPIC_MESSAGE
+              valueFrom:
+                configMapKeyRef:
+                  name: spring-chat-config
+                  key: RAW_TOPIC_MESSAGE
+            - name: LIST_OF_PROFILE_ENDPOINTS
+              valueFrom:
+                configMapKeyRef:
+                  name: spring-chat-config
+                  key: LIST_OF_PROFILE_ENDPOINTS
+            - name: MYSQL_DB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: spring-chat-config
+                  key: MYSQL_DB_HOST
+            - name: MYSQL_DB_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: spring-chat-config
+                  key: MYSQL_DB_PORT
+            - name: MYSQL_DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: chat-secret
+                  key: mysql-username
+            - name: MYSQL_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: chat-secret
+                  key: mysql-password
+---
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: spring-chat-autoscaling
+  namespace: default
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ .Values.chat.releaseName }}-deployment
+  minReplicas: {{ .Values.chat.hpa.minReplicas }}
+  maxReplicas: {{ .Values.chat.hpa.maxReplicas }}
+  targetCPUUtilizationPercentage: {{ .Values.chat.hpa.targetCPUUtilizationPercentage }}
+{{- end }}
